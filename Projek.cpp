@@ -1,8 +1,3 @@
-/**
- * Bagian yang aku kerjain  : Fitur Pencarian Ruang Kosong & Persetujuan Peminjaman (Admin)
- * Project      : ARC (Academic Reservation Classroom)
- * Nama       : Iqbal Aditya
- */
 
 #include <iostream>
 #include <iomanip>
@@ -12,7 +7,7 @@
 using namespace std;
 
 // ==========================================
-// STRUKTUR DATA & REFERENSI GLOBAL
+// 1. STRUKTUR DATA & REFERENSI GLOBAL
 // ==========================================
 
 enum StatusPinjam {
@@ -33,9 +28,56 @@ struct Peminjaman {
     StatusPinjam status;
 };
 
+struct Akun {
+    string username;
+    string password;
+    string role;
+};
+
 extern vector<Kelas> daftarKelas;
 extern vector<Peminjaman> daftarPinjam;
 extern void urutkanKelas();
+
+
+
+// ==========================================
+// 2. DATA GLOBAL
+// ==========================================
+
+vector<Kelas> daftarKelas = {
+    {"Ruang 101", true},
+    {"Ruang 102", false},
+    {"Ruang 103", true},
+    {"Ruang 104", true},
+    {"Aula", true}
+};
+
+vector<Peminjaman> daftarPinjam;
+
+vector<Akun> daftarAkun = {
+    {"rafael", "123456", "user"},
+    {"admin", "admin123", "admin"}
+};
+
+const string PASSWORD_ADMIN = "123321";
+
+// ==========================================
+// 3. FUNGSI TAMBAHAN
+// ==========================================
+
+void urutkanKelas() {
+    for (int i = 0; i < daftarKelas.size(); i++) {
+        for (int j = 0; j < daftarKelas.size() - i - 1; j++) {
+            if (daftarKelas[j].namaKelas >
+                daftarKelas[j + 1].namaKelas) {
+
+                swap(daftarKelas[j],
+                     daftarKelas[j + 1]);
+            }
+        }
+    }
+}
+
 
 // ==========================================
 // 1. FITUR USER: CEK & CARI RUANG KOSONG
@@ -86,8 +128,10 @@ void tampilkanDanCariKelasKosong() {
     }
 }
 
+
+
 // ==========================================
-// 2. FITUR ADMIN: PERSETUJUAN PEMINJAMAN
+// 5. FITUR ADMIN: PERSETUJUAN PEMINJAMAN
 // ==========================================
 
 void permohonanPeminjaman() {
@@ -157,4 +201,193 @@ void permohonanPeminjaman() {
     } else if (nomorPilih != 0) {
         cout << "[GAGAL] Nomor urut tidak valid.\n" << endl;
     }
+}
+
+    string username, password;
+    string role;
+    string kodeAdmin;
+
+    cout << "\n========== TAMBAH AKUN ==========\n";
+
+    cout << "Username baru: ";
+    cin >> username;
+
+    // Cek username sudah digunakan
+
+    for (size_t i = 0; i < daftarAkun.size(); i++) {
+
+        if (daftarAkun[i].username == username) {
+
+            cout << "Username sudah digunakan!\n";
+            return;
+        }
+    }
+
+    cout << "Password baru: ";
+    cin >> password;
+
+    int pilihan;
+
+    cout << "\nJenis akun:\n";
+    cout << "1. User Biasa\n";
+    cout << "2. Admin\n";
+    cout << "Pilih: ";
+    cin >> pilihan;
+
+    if (pilihan == 1) {
+
+        role = "user";
+
+    } else if (pilihan == 2) {
+
+        cout << "Masukkan password khusus admin: ";
+        cin >> kodeAdmin;
+
+        if (kodeAdmin != PASSWORD_ADMIN) {
+
+            cout << "Password khusus admin salah!\n";
+            return;
+        }
+
+        role = "admin";
+
+    } else {
+
+        cout << "Pilihan tidak valid!\n";
+        return;
+    }
+
+    daftarAkun.push_back({username, password, role});
+
+    cout << "\nAkun berhasil dibuat!\n";
+    cout << "Username: " << username << "\n";
+    cout << "Jenis akun: " << role << "\n";
+}
+
+// ==========================================
+// 8. MENU USER BIASA
+// ==========================================
+
+void menuUser(string username) {
+
+    int pilihan;
+
+    do {
+
+        cout << "\n========== MENU USER ==========\n";
+        cout << "Login sebagai: " << username << "\n";
+
+        cout << "1. Cek Ruang Tersedia\n";
+        cout << "2. Logout\n";
+
+        cout << "Pilih menu: ";
+        cin >> pilihan;
+
+        switch (pilihan) {
+
+            case 1:
+                tampilkanDanCariKelasKosong();
+                break;
+
+            case 2:
+                cout << "Berhasil logout!\n";
+                break;
+
+            default:
+                cout << "Pilihan tidak valid!\n";
+        }
+
+    } while (pilihan != 2);
+}
+
+// ==========================================
+// 9. MENU ADMIN
+// ==========================================
+
+void menuAdmin(string username) {
+
+    int pilihan;
+
+    do {
+
+        cout << "\n========== MENU ADMIN ==========\n";
+        cout << "Login sebagai: " << username << "\n";
+
+        cout << "1. Persetujuan Pinjaman\n";
+        cout << "2. Logout\n";
+
+        cout << "Pilih menu: ";
+        cin >> pilihan;
+
+        switch (pilihan) {
+
+            case 1:
+                permohonanPeminjaman();
+                break;
+
+            case 2:
+                cout << "Berhasil logout!\n";
+                break;
+
+            default:
+                cout << "Pilihan tidak valid!\n";
+        }
+
+    } while (pilihan != 2);
+}
+
+// ==========================================
+// 10. PROGRAM UTAMA
+// ==========================================
+
+int main() {
+
+    int pilihan;
+
+    do {
+
+        cout << "\n================================\n";
+        cout << "       A.R.C ROOM SYSTEM        \n";
+        cout << "================================\n";
+
+        cout << "1. Login\n";
+        cout << "2. Tambah Akun\n";
+        cout << "3. Keluar Program\n";
+
+        cout << "Pilih menu: ";
+        cin >> pilihan;
+
+        switch (pilihan) {
+
+            case 1: {
+
+                int hasilLogin = login();
+
+                if (hasilLogin == 1) {
+
+                    menuUser("rafael");
+
+                } else if (hasilLogin == 2) {
+
+                    menuAdmin("admin");
+                }
+
+                break;
+            }
+
+            case 2:
+                tambahAkun();
+                break;
+
+            case 3:
+                cout << "\nTerima kasih telah menggunakan ARC!\n";
+                break;
+
+            default:
+                cout << "Pilihan tidak valid!\n";
+        }
+
+    } while (pilihan != 3);
+
+    return 0;
 }
