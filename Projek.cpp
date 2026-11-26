@@ -41,22 +41,22 @@ struct Akun {
 
 vector<Kelas> daftarKelas = {
     {"Ruang B11 101", true},
-    {"Ruang B11 102", false},
+    {"Ruang B11 102", true},
     {"Ruang B11 103", true},
     {"Ruang B11 104", true},
     {"Ruang B11 105", true},
     {"Ruang B11 201", true},
-    {"Ruang B11 202", false},
+    {"Ruang B11 202", true},
     {"Ruang B11 203", true},
     {"Ruang B11 204", true},
     {"Ruang B11 205", true},
     {"Ruang B12 101", true},
-    {"Ruang B12 102", false},
+    {"Ruang B12 102", true},
     {"Ruang B12 103", true},
     {"Ruang B12 104", true},
     {"Ruang B12 105", true},
     {"Ruang B12 201", true},
-    {"Ruang B12 202", false},
+    {"Ruang B12 202", true},
     {"Ruang B12 203", true},
     {"Ruang B12 204", true},
     {"Ruang B12 205", true},
@@ -72,11 +72,7 @@ vector<Akun> daftarAkun = {
 
 const string PASSWORD_ADMIN = "123321";
 
-// ==========================================
 // 3. FUNGSI TAMBAHAN
-// ==========================================
-
-// Mengurutkan nama ruangan A-Z
 void urutkanKelas() {
     for (size_t i = 0; i < daftarKelas.size(); i++) {
         for (size_t j = 0; j + 1 < daftarKelas.size() - i; j++) {
@@ -94,9 +90,7 @@ string statusKeString(StatusPinjam s) {
     return "Ditolak";
 }
 
-// ==========================================
 // 4. FITUR USER: CEK & CARI RUANG KOSONG
-// ==========================================
 
 void tampilkanDanCariKelasKosong() {
     urutkanKelas();
@@ -125,14 +119,11 @@ void tampilkanDanCariKelasKosong() {
             / jumlahPerHalaman;
 
         cout << "\n=== DAFTAR RUANGAN KOSONG ===\n";
-        cout << "Halaman " << halaman + 1
-             << " dari " << totalHalaman << endl;
+        cout << "Halaman " << halaman + 1<< " dari " << totalHalaman << endl;
 
-        cout << left << setw(5) << "No"
-             << setw(20) << "Nama Ruangan"
+        cout << left << setw(5) << "No" << setw(20) << "Nama Ruangan"
              << "Status" << endl;
-
-        cout << "------------------------------------\n";
+         cout << string(40,'-')<<endl;
 
         // Menentukan batas data halaman
         int awal = halaman * jumlahPerHalaman;
@@ -151,7 +142,7 @@ void tampilkanDanCariKelasKosong() {
                  << "Kosong" << endl;
         }
 
-        cout << "------------------------------------\n";
+        cout << string(40,'-')<<endl;
 
         cout << "1. Halaman Berikutnya\n";
         cout << "2. Halaman Sebelumnya\n";
@@ -202,7 +193,7 @@ void tampilkanDanCariKelasKosong() {
                 cout << "Ruangan tidak ditemukan atau sedang digunakan.\n";
             }
 
-            cout << "------------------------------------\n";
+            cout << string(40,'-')<<endl;
         }
         else if (pilihan != 0) {
             cout << "Pilihan tidak valid!\n";
