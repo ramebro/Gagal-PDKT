@@ -39,7 +39,7 @@ struct Akun {
 
 vector<Kelas> daftarKelas = {
     {"Ruang 101", true},
-    {"Ruang 102", false},
+    {"Ruang 102", true},
     {"Ruang 103", true},
     {"Ruang 104", true},
     {"Aula", true}
@@ -80,21 +80,21 @@ string statusKeString(StatusPinjam s) {
 
 void tampilkanDanCariKelasKosong() {
     urutkanKelas();
-
-    cout << "\n=== DAFTAR SEMUA KELAS KOSONG (URUT A-Z) ===" << endl;
+    cout<<string(40,'=')<<endl;
+    cout << " DAFTAR SEMUA KELAS KOSONG (URUT A-Z) " << endl;
+    cout<<string(40,'=')<<endl;
     cout << left << setw(5) << "No" << setw(20) << "Nama Kelas" << "Status" << endl;
-    cout << "------------------------------------" << endl;
+    cout << string(40,'-') << endl;
 
     int nomor = 1;
     for (size_t i = 0; i < daftarKelas.size(); i++) {
         if (daftarKelas[i].isKosong) {
-            cout << left << setw(5) << nomor
-                 << setw(20) << daftarKelas[i].namaKelas
+            cout << left << setw(5) << nomor<< setw(20) << daftarKelas[i].namaKelas
                  << "Kosong" << endl;
             nomor++;
         }
     }
-    cout << "------------------------------------" << endl;
+    cout << string(40,'-') << endl;
 
     char mauCari;
     cout << "Apakah ingin mencari nama ruangan tertentu? (y/n): ";
@@ -118,7 +118,7 @@ void tampilkanDanCariKelasKosong() {
         if (!ketemu) {
             cout << "Ruangan dengan kata kunci \"" << kataKunci << "\" tidak ditemukan atau sedang dipakai." << endl;
         }
-        cout << "------------------------------------\n" << endl;
+        cout << string(40,'-') << "2\n" << endl;
     }
 }
 
@@ -165,18 +165,16 @@ void ajukanPeminjaman(const string& username) {
 // ==========================================
 
 void permohonanPeminjaman() {
-    cout << string(50, '=') << endl;
+    cout << string(40, '=') << endl;
     cout << "DAFTAR PERMOHONAN PEMINJAMAN" << endl;
-    cout << string(50, '=') << endl;
+    cout << string(40, '=') << endl;
 
     bool adaData = false;
     for (size_t i = 0; i < daftarPinjam.size(); i++) {
         if (daftarPinjam[i].status == MENUNGGU) {
             string statusStr = statusKeString(daftarPinjam[i].status);
-            cout << i + 1 << ". Peminjam: " << daftarPinjam[i].namaPeminjam
-                 << " | Kelas: " << daftarPinjam[i].namaKelas
-                 << " | Keperluan: " << daftarPinjam[i].keperluan
-                 << " | Status: " << statusStr << endl;
+            cout << i + 1 << ". Peminjam: " << daftarPinjam[i].namaPeminjam<< " | Kelas: " << daftarPinjam[i].namaKelas
+                 << " | Keperluan: " << daftarPinjam[i].keperluan<< " | Status: " << statusStr << endl;
             adaData = true;
         }
     }
@@ -384,9 +382,9 @@ int main() {
     int pilihan;
 
     do {
-        cout << "\n================================\n";
+        cout << "\n" << string(40, '=') << "\n";
         cout << "       A.R.C ROOM SYSTEM        \n";
-        cout << "================================\n";
+        cout << string(40, '=') << "\n";
         cout << "1. Login\n";
         cout << "2. Tambah Akun\n";
         cout << "3. Keluar Program\n";
