@@ -183,7 +183,7 @@ void tampilkanDanCariKelasKosong() {
                     && daftarKelas[i].isKosong) {
 
                     cout << "- " << daftarKelas[i].namaKelas
-                         << " [TERSEDIA / KOSONG]\n";
+                         << " [TERSEDIA]\n";
 
                     ketemu = true;
                 }
