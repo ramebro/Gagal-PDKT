@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -34,12 +33,6 @@ struct Akun {
     string role;
 };
 
-extern vector<Kelas> daftarKelas;
-extern vector<Peminjaman> daftarPinjam;
-extern void urutkanKelas();
-
-
-
 // ==========================================
 // 2. DATA GLOBAL
 // ==========================================
@@ -66,21 +59,23 @@ const string PASSWORD_ADMIN = "123321";
 // ==========================================
 
 void urutkanKelas() {
-    for (int i = 0; i < daftarKelas.size(); i++) {
-        for (int j = 0; j < daftarKelas.size() - i - 1; j++) {
-            if (daftarKelas[j].namaKelas >
-                daftarKelas[j + 1].namaKelas) {
-
-                swap(daftarKelas[j],
-                     daftarKelas[j + 1]);
+    for (size_t i = 0; i < daftarKelas.size(); i++) {
+        for (size_t j = 0; j + 1 < daftarKelas.size() - i; j++) {
+            if (daftarKelas[j].namaKelas > daftarKelas[j + 1].namaKelas) {
+                swap(daftarKelas[j], daftarKelas[j + 1]);
             }
         }
     }
 }
 
+string statusKeString(StatusPinjam s) {
+    if (s == MENUNGGU) return "Menunggu";
+    if (s == DISETUJUI) return "Disetujui";
+    return "Ditolak";
+}
 
 // ==========================================
-// 1. FITUR USER: CEK & CARI RUANG KOSONG
+// 4. FITUR USER: CEK, CARI & AJUKAN RUANG
 // ==========================================
 
 void tampilkanDanCariKelasKosong() {
@@ -93,15 +88,14 @@ void tampilkanDanCariKelasKosong() {
     int nomor = 1;
     for (size_t i = 0; i < daftarKelas.size(); i++) {
         if (daftarKelas[i].isKosong) {
-            cout << left << setw(5) << nomor 
-                 << setw(20) << daftarKelas[i].namaKelas 
+            cout << left << setw(5) << nomor
+                 << setw(20) << daftarKelas[i].namaKelas
                  << "Kosong" << endl;
             nomor++;
         }
     }
     cout << "------------------------------------" << endl;
 
-    // Fitur Searching Ruang Kosong (Linear Search + Substring Matching)
     char mauCari;
     cout << "Apakah ingin mencari nama ruangan tertentu? (y/n): ";
     cin >> mauCari;
@@ -128,96 +122,161 @@ void tampilkanDanCariKelasKosong() {
     }
 }
 
+void ajukanPeminjaman(const string& username) {
+    urutkanKelas();
+    cout << "\n=== AJUKAN PEMINJAMAN RUANGAN ===" << endl;
 
+    vector<int> indeksKosong;
+    for (size_t i = 0; i < daftarKelas.size(); i++) {
+        if (daftarKelas[i].isKosong) {
+            cout << (indeksKosong.size() + 1) << ". " << daftarKelas[i].namaKelas << endl;
+            indeksKosong.push_back(static_cast<int>(i));
+        }
+    }
+
+    if (indeksKosong.empty()) {
+        cout << "Tidak ada ruangan kosong saat ini.\n";
+        return;
+    }
+
+    size_t pilih;
+    cout << "Pilih nomor ruangan (0 untuk batal): ";
+    cin >> pilih;
+
+    if (pilih == 0) return;
+    if (pilih > indeksKosong.size()) {
+        cout << "Pilihan tidak valid!\n";
+        return;
+    }
+
+    string keperluan;
+    cout << "Masukkan keperluan peminjaman: ";
+    cin.ignore();
+    getline(cin, keperluan);
+
+    string namaRuang = daftarKelas[indeksKosong[pilih - 1]].namaKelas;
+    daftarPinjam.push_back({username, namaRuang, keperluan, MENUNGGU});
+
+    cout << "Permohonan peminjaman " << namaRuang << " berhasil dikirim (Status: Menunggu).\n";
+}
 
 // ==========================================
 // 5. FITUR ADMIN: PERSETUJUAN PEMINJAMAN
 // ==========================================
 
 void permohonanPeminjaman() {
-    cout << "\n=== DAFTAR PERMOHONAN PEMINJAMAN ===" << endl;
-    bool adaData = false;
+    cout << string(50, '=') << endl;
+    cout << "DAFTAR PERMOHONAN PEMINJAMAN" << endl;
+    cout << string(50, '=') << endl;
 
+    bool adaData = false;
     for (size_t i = 0; i < daftarPinjam.size(); i++) {
-        if (daftarPinjam[i].status == MENUNGGU || daftarPinjam[i].status == DISETUJUI) {
-            string labelStatus = (daftarPinjam[i].status == MENUNGGU) ? "MENUNGGU" : "DISETUJUI";
-            cout << i + 1 << ". Peminjam: " << daftarPinjam[i].namaPeminjam 
-                 << " | Kelas: " << daftarPinjam[i].namaKelas 
-                 << " | Keperluan: " << daftarPinjam[i].keperluan 
-                 << " [" << labelStatus << "]" << endl;
+        if (daftarPinjam[i].status == MENUNGGU) {
+            string statusStr = statusKeString(daftarPinjam[i].status);
+            cout << i + 1 << ". Peminjam: " << daftarPinjam[i].namaPeminjam
+                 << " | Kelas: " << daftarPinjam[i].namaKelas
+                 << " | Keperluan: " << daftarPinjam[i].keperluan
+                 << " | Status: " << statusStr << endl;
             adaData = true;
         }
     }
 
     if (!adaData) {
-        cout << "Tidak ada permohonan peminjaman aktif.\n" << endl;
+        cout << "Tidak ada permohonan peminjaman aktif.\n";
         return;
     }
 
     size_t nomorPilih;
-    cout << "\nMasukkan nomor urut permohonan yang ingin diproses/diubah (0 untuk batal): ";
+    cout << "\nNomor permohonan (0 untuk batal): ";
     cin >> nomorPilih;
 
-    if (nomorPilih > 0 && nomorPilih <= daftarPinjam.size()) {
-        size_t index = nomorPilih - 1;
-        
-        if (daftarPinjam[index].status == DITOLAK) {
-            cout << "[GAGAL] Permohonan ini sudah ditolak.\n" << endl;
-            return;
+    if (nomorPilih == 0) return;
+
+    if (nomorPilih > daftarPinjam.size()) {
+        cout << "Nomor tidak valid!\n";
+        return;
+    }
+
+    size_t index = nomorPilih - 1;
+
+    if (daftarPinjam[index].status == DITOLAK) {
+        cout << "Permohonan sudah ditolak.\n";
+        return;
+    }
+
+    int keputusan;
+    cout << "\n1. Terima (ACC)\n";
+    cout << "2. Tolak / Batalkan Persetujuan\n";
+    cout << "Pilih: ";
+    cin >> keputusan;
+
+    if (keputusan == 1) {
+        daftarPinjam[index].status = DISETUJUI;
+
+        for (size_t j = 0; j < daftarKelas.size(); j++) {
+            if (daftarKelas[j].namaKelas == daftarPinjam[index].namaKelas) {
+                daftarKelas[j].isKosong = false;
+                break;
+            }
         }
 
-        int keputusan;
-        cout << "Tindakan untuk " << daftarPinjam[index].namaPeminjam << " (" << daftarPinjam[index].namaKelas << "):" << endl;
-        cout << "1. Terima (ACC)" << endl;
-        cout << "2. Tolak / Batalkan Persetujuan" << endl;
-        cout << "Pilih (1/2): ";
-        cin >> keputusan;
+        cout << "Peminjaman berhasil disetujui!\n";
+    } else if (keputusan == 2) {
+        daftarPinjam[index].status = DITOLAK;
 
-        if (keputusan == 1) {
-            daftarPinjam[index].status = DISETUJUI;
-
-            // Sinkronisasi: Tandai ruang kelas menjadi terpakai (false)
-            for (size_t j = 0; j < daftarKelas.size(); j++) {
-                if (daftarKelas[j].namaKelas == daftarPinjam[index].namaKelas) {
-                    daftarKelas[j].isKosong = false;
-                    break;
-                }
+        for (size_t j = 0; j < daftarKelas.size(); j++) {
+            if (daftarKelas[j].namaKelas == daftarPinjam[index].namaKelas) {
+                daftarKelas[j].isKosong = true;
+                break;
             }
-            cout << "[SUKSES] Peminjaman DISETUJUI! Kelas otomatis ditandai terpakai.\n" << endl;
-        } else if (keputusan == 2) {
-            daftarPinjam[index].status = DITOLAK;
-
-            // Sinkronisasi: Kembalikan ruang kelas menjadi kosong (true)
-            for (size_t j = 0; j < daftarKelas.size(); j++) {
-                if (daftarKelas[j].namaKelas == daftarPinjam[index].namaKelas) {
-                    daftarKelas[j].isKosong = true;
-                    break;
-                }
-            }
-            cout << "[INFO] Peminjaman DITOLAK / DIBATALKAN. Status ruangan kembali kosong.\n" << endl;
-        } else {
-            cout << "[GAGAL] Pilihan tindakan tidak valid.\n" << endl;
         }
-    } else if (nomorPilih != 0) {
-        cout << "[GAGAL] Nomor urut tidak valid.\n" << endl;
+
+        cout << "Peminjaman berhasil ditolak.\n";
+    } else {
+        cout << "Pilihan tidak valid!\n";
     }
 }
 
+// ==========================================
+// 6. LOGIN & TAMBAH AKUN
+// ==========================================
+
+int login(string& userAktif) {
+    string username, password;
+    cout << "\n========== LOGIN ==========\n";
+    cout << "Username: ";
+    cin >> username;
+    cout << "Password: ";
+    cin >> password;
+
+    for (size_t i = 0; i < daftarAkun.size(); i++) {
+        if (daftarAkun[i].username == username && daftarAkun[i].password == password) {
+            userAktif = daftarAkun[i].username;
+            if (daftarAkun[i].role == "user") {
+                cout << "Login berhasil sebagai User!\n";
+                return 1;
+            } else if (daftarAkun[i].role == "admin") {
+                cout << "Login berhasil sebagai Admin!\n";
+                return 2;
+            }
+        }
+    }
+
+    cout << "Username atau password salah!\n";
+    return 0;
+}
+
+void tambahAkun() {
     string username, password;
     string role;
     string kodeAdmin;
 
     cout << "\n========== TAMBAH AKUN ==========\n";
-
     cout << "Username baru: ";
     cin >> username;
 
-    // Cek username sudah digunakan
-
     for (size_t i = 0; i < daftarAkun.size(); i++) {
-
         if (daftarAkun[i].username == username) {
-
             cout << "Username sudah digunakan!\n";
             return;
         }
@@ -227,7 +286,6 @@ void permohonanPeminjaman() {
     cin >> password;
 
     int pilihan;
-
     cout << "\nJenis akun:\n";
     cout << "1. User Biasa\n";
     cout << "2. Admin\n";
@@ -235,24 +293,18 @@ void permohonanPeminjaman() {
     cin >> pilihan;
 
     if (pilihan == 1) {
-
         role = "user";
-
     } else if (pilihan == 2) {
-
         cout << "Masukkan password khusus admin: ";
         cin >> kodeAdmin;
 
         if (kodeAdmin != PASSWORD_ADMIN) {
-
             cout << "Password khusus admin salah!\n";
             return;
         }
 
         role = "admin";
-
     } else {
-
         cout << "Pilihan tidak valid!\n";
         return;
     }
@@ -265,128 +317,103 @@ void permohonanPeminjaman() {
 }
 
 // ==========================================
-// 8. MENU USER BIASA
+// 7. MENU USER BIASA
 // ==========================================
 
-void menuUser(string username) {
-
+void menuUser(const string& username) {
     int pilihan;
 
     do {
-
         cout << "\n========== MENU USER ==========\n";
         cout << "Login sebagai: " << username << "\n";
-
-        cout << "1. Cek Ruang Tersedia\n";
-        cout << "2. Logout\n";
-
+        cout << "1. Cek & Cari Ruang Tersedia\n";
+        cout << "2. Ajukan Peminjaman Ruang\n";
+        cout << "3. Logout\n";
         cout << "Pilih menu: ";
         cin >> pilihan;
 
         switch (pilihan) {
-
             case 1:
                 tampilkanDanCariKelasKosong();
                 break;
-
             case 2:
+                ajukanPeminjaman(username);
+                break;
+            case 3:
                 cout << "Berhasil logout!\n";
                 break;
-
             default:
                 cout << "Pilihan tidak valid!\n";
         }
-
-    } while (pilihan != 2);
+    } while (pilihan != 3);
 }
 
 // ==========================================
-// 9. MENU ADMIN
+// 8. MENU ADMIN
 // ==========================================
 
-void menuAdmin(string username) {
-
+void menuAdmin(const string& username) {
     int pilihan;
 
     do {
-
         cout << "\n========== MENU ADMIN ==========\n";
         cout << "Login sebagai: " << username << "\n";
-
         cout << "1. Persetujuan Pinjaman\n";
         cout << "2. Logout\n";
-
         cout << "Pilih menu: ";
         cin >> pilihan;
 
         switch (pilihan) {
-
             case 1:
                 permohonanPeminjaman();
                 break;
-
             case 2:
                 cout << "Berhasil logout!\n";
                 break;
-
             default:
                 cout << "Pilihan tidak valid!\n";
         }
-
     } while (pilihan != 2);
 }
 
 // ==========================================
-// 10. PROGRAM UTAMA
+// 9. PROGRAM UTAMA
 // ==========================================
 
 int main() {
-
     int pilihan;
 
     do {
-
         cout << "\n================================\n";
         cout << "       A.R.C ROOM SYSTEM        \n";
         cout << "================================\n";
-
         cout << "1. Login\n";
         cout << "2. Tambah Akun\n";
         cout << "3. Keluar Program\n";
-
         cout << "Pilih menu: ";
         cin >> pilihan;
 
         switch (pilihan) {
-
             case 1: {
-
-                int hasilLogin = login();
+                string userAktif;
+                int hasilLogin = login(userAktif);
 
                 if (hasilLogin == 1) {
-
-                    menuUser("rafael");
-
+                    menuUser(userAktif);
                 } else if (hasilLogin == 2) {
-
-                    menuAdmin("admin");
+                    menuAdmin(userAktif);
                 }
-
                 break;
             }
-
             case 2:
                 tambahAkun();
                 break;
-
             case 3:
                 cout << "\nTerima kasih telah menggunakan ARC!\n";
                 break;
-
             default:
                 cout << "Pilihan tidak valid!\n";
         }
-
     } while (pilihan != 3);
 
     return 0;
