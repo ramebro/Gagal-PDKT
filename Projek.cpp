@@ -40,6 +40,7 @@ struct Akun {
 // ==========================================
 
 vector<Kelas> daftarKelas = {
+<<<<<<< HEAD
     {"Ruang B11 101", true},
     {"Ruang B11 102", false},
     {"Ruang B11 103", true},
@@ -61,6 +62,13 @@ vector<Kelas> daftarKelas = {
     {"Ruang B12 204", true},
     {"Ruang B12 205", true},
     {"Aula B12", true}
+=======
+    {"Ruang 101", true},
+    {"Ruang 102", true},
+    {"Ruang 103", true},
+    {"Ruang 104", true},
+    {"Aula", true}
+>>>>>>> c7693c1aed8eb6e96e3b9009cfa133b956e90edd
 };
 
 vector<Peminjaman> daftarPinjam;
@@ -100,15 +108,32 @@ string statusKeString(StatusPinjam s) {
 
 void tampilkanDanCariKelasKosong() {
     urutkanKelas();
+<<<<<<< HEAD
 
     // Mengumpulkan indeks ruangan kosong
     vector<int> indeksKosong;
+=======
+    cout<<string(40,'=')<<endl;
+    cout << " DAFTAR SEMUA KELAS KOSONG (URUT A-Z) " << endl;
+    cout<<string(40,'=')<<endl;
+    cout << left << setw(5) << "No" << setw(20) << "Nama Kelas" << "Status" << endl;
+    cout << string(40,'-') << endl;
+>>>>>>> c7693c1aed8eb6e96e3b9009cfa133b956e90edd
 
     for (size_t i = 0; i < daftarKelas.size(); i++) {
         if (daftarKelas[i].isKosong) {
+<<<<<<< HEAD
             indeksKosong.push_back(i);
         }
     }
+=======
+            cout << left << setw(5) << nomor<< setw(20) << daftarKelas[i].namaKelas
+                 << "Kosong" << endl;
+            nomor++;
+        }
+    }
+    cout << string(40,'-') << endl;
+>>>>>>> c7693c1aed8eb6e96e3b9009cfa133b956e90edd
 
     if (indeksKosong.empty()) {
         cout << "\nTidak ada ruangan kosong saat ini.\n";
@@ -174,6 +199,7 @@ void tampilkanDanCariKelasKosong() {
                 cout << "Ini sudah halaman pertama!\n";
             }
         }
+<<<<<<< HEAD
         else if (pilihan == 3) {
             string kataKunci;
 
@@ -209,6 +235,10 @@ void tampilkanDanCariKelasKosong() {
         }
 
     } while (pilihan != 0);
+=======
+        cout << string(40,'-') << "2\n" << endl;
+    }
+>>>>>>> c7693c1aed8eb6e96e3b9009cfa133b956e90edd
 }
 
 // ==========================================
@@ -368,9 +398,9 @@ void riwayatPeminjaman(const string& username) {
 // ==========================================
 
 void permohonanPeminjaman() {
-    cout << string(50, '=') << endl;
+    cout << string(40, '=') << endl;
     cout << "DAFTAR PERMOHONAN PEMINJAMAN" << endl;
-    cout << string(50, '=') << endl;
+    cout << string(40, '=') << endl;
 
     // Menyimpan indeks permohonan yang menunggu
     vector<int> indeksMenunggu;
@@ -378,6 +408,7 @@ void permohonanPeminjaman() {
 
     for (size_t i = 0; i < daftarPinjam.size(); i++) {
         if (daftarPinjam[i].status == MENUNGGU) {
+<<<<<<< HEAD
             indeksMenunggu.push_back(i);
 
             cout << indeksMenunggu.size()
@@ -388,6 +419,11 @@ void permohonanPeminjaman() {
                  << statusKeString(daftarPinjam[i].status)
                  << endl;
 
+=======
+            string statusStr = statusKeString(daftarPinjam[i].status);
+            cout << i + 1 << ". Peminjam: " << daftarPinjam[i].namaPeminjam<< " | Kelas: " << daftarPinjam[i].namaKelas
+                 << " | Keperluan: " << daftarPinjam[i].keperluan<< " | Status: " << statusStr << endl;
+>>>>>>> c7693c1aed8eb6e96e3b9009cfa133b956e90edd
             adaData = true;
         }
     }
@@ -618,9 +654,9 @@ int main() {
     int pilihan;
 
     do {
-        cout << "\n================================\n";
+        cout << "\n" << string(40, '=') << "\n";
         cout << "       A.R.C ROOM SYSTEM        \n";
-        cout << "================================\n";
+        cout << string(40, '=') << "\n";
         cout << "1. Login\n";
         cout << "2. Tambah Akun\n";
         cout << "3. Keluar Program\n";
