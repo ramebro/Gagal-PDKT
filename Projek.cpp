@@ -1,11 +1,14 @@
-
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <vector>
 #include <limits>
+#include <chrono>
+#include <ctime>
+#include <sstream>
 
 using namespace std;
+using namespace std::chrono;
 
 // ==========================================
 // 1. STRUKTUR DATA
@@ -27,6 +30,7 @@ struct Peminjaman {
     string namaKelas;
     string keperluan;
     StatusPinjam status;
+    system_clock::time_point waktuExpired; // Batas tanggal & jam berakhir
 };
 
 struct Akun {
@@ -72,7 +76,17 @@ vector<Akun> daftarAkun = {
 
 const string PASSWORD_ADMIN = "123321";
 
+// Offset simulasi waktu (detik) untuk keperluan uji coba tanpa menunggu waktu asli
+long long offsetSimulasiDetik = 0;
+
+// ==========================================
 // 3. FUNGSI TAMBAHAN
+// ==========================================
+
+system_clock::time_point waktuSekarang() {
+    return system_clock::now() + seconds(offsetSimulasiDetik);
+}
+
 void urutkanKelas() {
     for (size_t i = 0; i < daftarKelas.size(); i++) {
         for (size_t j = 0; j + 1 < daftarKelas.size() - i; j++) {
@@ -90,9 +104,159 @@ string statusKeString(StatusPinjam s) {
     return "Ditolak";
 }
 
+// Cek tahun kabisat
+bool adalahTahunKabisat(int tahun) {
+    return (tahun % 4 == 0 && tahun % 100 != 0) || (tahun % 400 == 0);
+}
+
+// Jumlah hari valid pada bulan tertentu
+int jumlahHariDalamBulan(int tahun, int bulan) {
+    if (bulan == 2) {
+        return adalahTahunKabisat(tahun) ? 29 : 28;
+    }
+    if (bulan == 4 || bulan == 6 || bulan == 9 || bulan == 11) {
+        return 30;
+    }
+    return 31;
+}
+
+// Mengubah input tanggal & jam ("YYYY-MM-DD HH:MM") ke system_clock::time_point
+bool parseTanggalWaktuKeTimePoint(const string& inputStr, system_clock::time_point& hasil) {
+    int tahun, bulan, hari, jam, menit;
+    char dash1, dash2, colon;
+
+    stringstream ss(inputStr);
+    if (!(ss >> tahun >> dash1 >> bulan >> dash2 >> hari >> jam >> colon >> menit) ||
+        dash1 != '-' || dash2 != '-' || colon != ':') {
+        return false;
+    }
+
+    char sisa;
+    if (ss >> sisa) {
+        return false;
+    }
+
+    if (tahun < 1970 || bulan < 1 || bulan > 12) {
+        return false;
+    }
+
+    int maxHari = jumlahHariDalamBulan(tahun, bulan);
+    if (hari < 1 || hari > maxHari) {
+        return false;
+    }
+
+    if (jam < 0 || jam > 23 || menit < 0 || menit > 59) {
+        return false;
+    }
+
+    tm waktuTm = {};
+    waktuTm.tm_year = tahun - 1900;
+    waktuTm.tm_mon  = bulan - 1;
+    waktuTm.tm_mday = hari;
+    waktuTm.tm_hour = jam;
+    waktuTm.tm_min  = menit;
+    waktuTm.tm_sec  = 0;
+    waktuTm.tm_isdst = -1;
+
+    time_t waktuT = mktime(&waktuTm);
+    if (waktuT == -1) {
+        return false;
+    }
+
+    hasil = system_clock::from_time_t(waktuT);
+    return true;
+}
+
+// Format batas waktu menjadi string "YYYY-MM-DD HH:MM"
+string formatTanggalWaktu(system_clock::time_point tp) {
+    time_t waktuT = system_clock::to_time_t(tp);
+    tm waktuTm = {};
+#if defined(_WIN32) || defined(_WIN64)
+    localtime_s(&waktuTm, &waktuT);
+#else
+    localtime_r(&waktuT, &waktuTm);
+#endif
+    ostringstream oss;
+    oss << put_time(&waktuTm, "%Y-%m-%d %H:%M");
+    return oss.str();
+}
+
+// Format sisa waktu dari waktuSekarang() sampai waktuExpired
+string sisaWaktuString(system_clock::time_point waktuExpired) {
+    auto sekarang = waktuSekarang();
+    if (sekarang >= waktuExpired) {
+        return "Habis";
+    }
+    auto totalMenit = duration_cast<minutes>(waktuExpired - sekarang).count();
+    long hari = totalMenit / (60 * 24);
+    long jam = (totalMenit % (60 * 24)) / 60;
+    long menit = totalMenit % 60;
+
+    if (hari > 0) {
+        return to_string(hari) + "h " + to_string(jam) + "j " + to_string(menit) + "m";
+    }
+    if (jam > 0) {
+        return to_string(jam) + "j " + to_string(menit) + "m";
+    }
+    auto sisaDetik = duration_cast<seconds>(waktuExpired - sekarang).count();
+    return to_string(sisaDetik / 60) + "m " + to_string(sisaDetik % 60) + "d";
+}
+
+// Menghapus otomatis peminjaman yang batas tanggal & waktunya sudah habis
+void bersihkanPeminjamanExpired(bool tampilkanInfo = true) {
+    auto sekarang = waktuSekarang();
+    int jumlahDihapus = 0;
+
+    for (size_t i = 0; i < daftarPinjam.size(); ) {
+        if (sekarang >= daftarPinjam[i].waktuExpired) {
+            string infoPeminjam = daftarPinjam[i].namaPeminjam;
+            string ruang = daftarPinjam[i].namaKelas;
+            StatusPinjam statusLama = daftarPinjam[i].status;
+
+            daftarPinjam.erase(daftarPinjam.begin() + i);
+            jumlahDihapus++;
+
+            if (statusLama == DISETUJUI) {
+                bool masihDipakai = false;
+                for (size_t k = 0; k < daftarPinjam.size(); k++) {
+                    if (daftarPinjam[k].namaKelas == ruang &&
+                        daftarPinjam[k].status == DISETUJUI) {
+                        masihDipakai = true;
+                        break;
+                    }
+                }
+
+                if (!masihDipakai) {
+                    for (size_t j = 0; j < daftarKelas.size(); j++) {
+                        if (daftarKelas[j].namaKelas == ruang) {
+                            daftarKelas[j].isKosong = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (tampilkanInfo) {
+                cout << "[AUTO-HAPUS] Peminjaman " << ruang
+                     << " oleh " << infoPeminjam
+                     << " terhapus karena waktu habis.\n";
+            }
+        } else {
+            i++;
+        }
+    }
+
+    if (tampilkanInfo && jumlahDihapus > 0) {
+        cout << "Total " << jumlahDihapus << " peminjaman kedaluwarsa dibersihkan.\n";
+    }
+}
+
+// ==========================================
 // 4. FITUR USER: CEK & CARI RUANG KOSONG
+// ==========================================
 
 void tampilkanDanCariKelasKosong() {
+    bersihkanPeminjamanExpired();
     urutkanKelas();
 
     // Mengumpulkan indeks ruangan kosong
@@ -114,6 +278,8 @@ void tampilkanDanCariKelasKosong() {
     int pilihan;
 
     do {
+        bersihkanPeminjamanExpired();
+
         int totalHalaman =
             (indeksKosong.size() + jumlahPerHalaman - 1)
             / jumlahPerHalaman;
@@ -207,6 +373,7 @@ void tampilkanDanCariKelasKosong() {
 // ==========================================
 
 void ajukanPeminjaman(const string& username) {
+    bersihkanPeminjamanExpired();
     urutkanKelas();
 
     cout << "\n=== AJUKAN PEMINJAMAN RUANGAN ===\n";
@@ -247,6 +414,22 @@ void ajukanPeminjaman(const string& username) {
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     getline(cin, keperluan);
 
+    string batasInput;
+    system_clock::time_point waktuExpired;
+
+    cout << "Masukkan batas tanggal & waktu (YYYY-MM-DD HH:MM, cth: 2026-11-26 17:00): ";
+    getline(cin, batasInput);
+
+    if (!parseTanggalWaktuKeTimePoint(batasInput, waktuExpired)) {
+        cout << "Format tanggal/waktu tidak valid! Gunakan YYYY-MM-DD HH:MM.\n";
+        return;
+    }
+
+    if (waktuExpired <= waktuSekarang()) {
+        cout << "Batas tanggal & waktu harus setelah waktu sistem saat ini!\n";
+        return;
+    }
+
     string namaRuang =
         daftarKelas[indeksKosong[pilih - 1]].namaKelas;
 
@@ -254,11 +437,13 @@ void ajukanPeminjaman(const string& username) {
         username,
         namaRuang,
         keperluan,
-        MENUNGGU
+        MENUNGGU,
+        waktuExpired
     });
 
     cout << "\nPermohonan peminjaman " << namaRuang
-         << " berhasil dikirim (Status: Menunggu).\n";
+         << " berhasil dikirim (Status: Menunggu, Batas: "
+         << formatTanggalWaktu(waktuExpired) << ").\n";
 }
 
 // ==========================================
@@ -266,9 +451,12 @@ void ajukanPeminjaman(const string& username) {
 // ==========================================
 
 void riwayatPeminjaman(const string& username) {
+    bersihkanPeminjamanExpired();
     int pilihan;
 
     do {
+        bersihkanPeminjamanExpired();
+
         cout << "\n========== RIWAYAT PEMINJAMAN ==========\n";
         cout << "1. Semua Riwayat\n";
         cout << "2. Riwayat Disetujui (ACC)\n";
@@ -290,12 +478,14 @@ void riwayatPeminjaman(const string& username) {
         cout << "\n========== HASIL RIWAYAT ==========\n";
 
         cout << left
-             << setw(5) << "No"
-             << setw(20) << "Nama Ruangan"
-             << setw(25) << "Keperluan"
-             << "Status" << endl;
+             << setw(4) << "No"
+             << setw(16) << "Ruangan"
+             << setw(18) << "Keperluan"
+             << setw(12) << "Status"
+             << setw(18) << "Batas Waktu"
+             << "Sisa" << endl;
 
-        cout << string(65, '-') << endl;
+        cout << string(82, '-') << endl;
 
         bool adaRiwayat = false;
         int nomor = 1;
@@ -334,10 +524,12 @@ void riwayatPeminjaman(const string& username) {
 
             if (sesuaiFilter) {
                 cout << left
-                     << setw(5) << nomor
-                     << setw(20) << daftarPinjam[i].namaKelas
-                     << setw(25) << daftarPinjam[i].keperluan
-                     << statusKeString(daftarPinjam[i].status)
+                     << setw(4) << nomor
+                     << setw(16) << daftarPinjam[i].namaKelas
+                     << setw(18) << daftarPinjam[i].keperluan
+                     << setw(12) << statusKeString(daftarPinjam[i].status)
+                     << setw(18) << formatTanggalWaktu(daftarPinjam[i].waktuExpired)
+                     << sisaWaktuString(daftarPinjam[i].waktuExpired)
                      << endl;
 
                 nomor++;
@@ -345,7 +537,7 @@ void riwayatPeminjaman(const string& username) {
             }
         }
 
-        cout << string(65, '-') << endl;
+        cout << string(82, '-') << endl;
 
         if (!adaRiwayat) {
             cout << "Tidak ada riwayat pada filter ini.\n";
@@ -359,6 +551,8 @@ void riwayatPeminjaman(const string& username) {
 // ==========================================
 
 void permohonanPeminjaman() {
+    bersihkanPeminjamanExpired();
+
     cout << string(50, '=') << endl;
     cout << "DAFTAR PERMOHONAN PEMINJAMAN" << endl;
     cout << string(50, '=') << endl;
@@ -375,6 +569,8 @@ void permohonanPeminjaman() {
                  << ". Peminjam: " << daftarPinjam[i].namaPeminjam
                  << " | Kelas: " << daftarPinjam[i].namaKelas
                  << " | Keperluan: " << daftarPinjam[i].keperluan
+                 << " | Batas: " << formatTanggalWaktu(daftarPinjam[i].waktuExpired)
+                 << " | Sisa: " << sisaWaktuString(daftarPinjam[i].waktuExpired)
                  << " | Status: "
                  << statusKeString(daftarPinjam[i].status)
                  << endl;
@@ -414,17 +610,32 @@ void permohonanPeminjaman() {
 
     if (keputusan == 1) {
         daftarPinjam[index].status = DISETUJUI;
+        string ruangTerpilih = daftarPinjam[index].namaKelas;
 
         for (size_t j = 0; j < daftarKelas.size(); j++) {
-            if (daftarKelas[j].namaKelas ==
-                daftarPinjam[index].namaKelas) {
-
+            if (daftarKelas[j].namaKelas == ruangTerpilih) {
                 daftarKelas[j].isKosong = false;
                 break;
             }
         }
 
+        // Otomatis menolak permohonan MENUNGGU lain pada ruangan yang sama
+        int jumlahDitolakOtomatis = 0;
+        for (size_t k = 0; k < daftarPinjam.size(); k++) {
+            if (k != index &&
+                daftarPinjam[k].namaKelas == ruangTerpilih &&
+                daftarPinjam[k].status == MENUNGGU) {
+                daftarPinjam[k].status = DITOLAK;
+                jumlahDitolakOtomatis++;
+            }
+        }
+
         cout << "Peminjaman berhasil disetujui!\n";
+        if (jumlahDitolakOtomatis > 0) {
+            cout << jumlahDitolakOtomatis
+                 << " permohonan lain untuk " << ruangTerpilih
+                 << " otomatis ditolak.\n";
+        }
     }
     else if (keputusan == 2) {
         daftarPinjam[index].status = DITOLAK;
@@ -434,6 +645,46 @@ void permohonanPeminjaman() {
     else {
         cout << "Pilihan tidak valid!\n";
     }
+}
+
+// ==========================================
+// 7B. MENU UJI COBA WAKTU (SIMULASI)
+// ==========================================
+
+void menuUjiCobaWaktu() {
+    int pilihan;
+
+    do {
+        cout << "\n========== UJI COBA WAKTU ==========\n";
+        cout << "Waktu sistem aktif: " << formatTanggalWaktu(waktuSekarang())
+             << " (Offset: " << offsetSimulasiDetik << " detik)\n";
+        cout << "1. Majukan waktu +1 jam\n";
+        cout << "2. Majukan waktu +1 hari\n";
+        cout << "3. Reset waktu ke waktu asli sekarang\n";
+        cout << "4. Cek & bersihkan peminjaman expired sekarang\n";
+        cout << "0. Kembali\n";
+        cout << "Pilih: ";
+        cin >> pilihan;
+
+        if (pilihan == 1) {
+            offsetSimulasiDetik += 3600;
+            bersihkanPeminjamanExpired();
+        }
+        else if (pilihan == 2) {
+            offsetSimulasiDetik += 86400;
+            bersihkanPeminjamanExpired();
+        }
+        else if (pilihan == 3) {
+            offsetSimulasiDetik = 0;
+            cout << "Waktu dikembalikan ke waktu asli.\n";
+        }
+        else if (pilihan == 4) {
+            bersihkanPeminjamanExpired();
+        }
+        else if (pilihan != 0) {
+            cout << "Pilihan tidak valid!\n";
+        }
+    } while (pilihan != 0);
 }
 
 // ==========================================
@@ -537,6 +788,8 @@ void menuUser(const string& username) {
     int pilihan;
 
     do {
+        bersihkanPeminjamanExpired();
+
         cout << "\n========== MENU USER ==========\n";
         cout << "Login sebagai: " << username << "\n";
         cout << "1. Cek & Cari Ruang Tersedia\n";
@@ -578,6 +831,8 @@ void menuAdmin(const string& username) {
     int pilihan;
 
     do {
+        bersihkanPeminjamanExpired();
+
         cout << "\n========== MENU ADMIN ==========\n";
         cout << "Login sebagai: " << username << "\n";
         cout << "1. Persetujuan Pinjaman\n";
@@ -609,12 +864,15 @@ int main() {
     int pilihan;
 
     do {
+        bersihkanPeminjamanExpired();
+
         cout << "\n================================\n";
         cout << "       A.R.C ROOM SYSTEM        \n";
         cout << "================================\n";
         cout << "1. Login\n";
         cout << "2. Tambah Akun\n";
-        cout << "3. Keluar Program\n";
+        cout << "3. Uji Coba Waktu (Simulasi)\n";
+        cout << "4. Keluar Program\n";
         cout << "Pilih menu: ";
         cin >> pilihan;
 
@@ -638,6 +896,10 @@ int main() {
                 break;
 
             case 3:
+                menuUjiCobaWaktu();
+                break;
+
+            case 4:
                 cout << "\nTerima kasih telah menggunakan ARC!\n";
                 break;
 
@@ -645,7 +907,7 @@ int main() {
                 cout << "Pilihan tidak valid!\n";
         }
 
-    } while (pilihan != 3);
+    } while (pilihan != 4);
 
     return 0;
 }
